@@ -1,0 +1,66 @@
+# Future Update Guide: Implementing Dual Volatile Asset LP Hedging
+
+This document outlines the necessary steps to upgrade the bot from hedging a simple volatile-stable pair (e.g., ETH/USDC) to a more complex volatile-volatile pair (e.g., ETH/BTC).
+
+## The Core Challenge: Two-Dimensional Risk
+
+The current bot assumes one asset (the stablecoin) has a fixed price, so it only needs to manage the price risk, or "delta," of the single volatile asset.
+
+When you have a volatile-volatile pair like ETH/BTC, your investment is exposed to risk from two sources:
+1.  The price of ETH changes relative to USD.
+2.  The price of BTC changes relative to USD.
+
+To be truly "delta neutral," you must hedge both of these risks simultaneously. This requires a significant upgrade to the bot's logic.
+
+---
+
+## Step-by-Step Implementation Plan
+
+### Step 1: Upgrade the State Calculator (`state_calculator.py`)
+
+The current script calculates a single delta. This needs to be upgraded to calculate the delta of the LP position with respect to *each* volatile asset.
+
+1.  **Update the Math:** The mathematical formulas for calculating greeks in a dual-volatile pool are more complex. You would need to consult advanced DeFi derivatives papers (e.g., from Nabla Finance or research papers on Uniswap v3 analytics) to find the correct formulas for `delta_ETH` and `delta_BTC`.
+2.  **Modify the Function:** The `calculate_lp_greeks` function would need to be changed to calculate and return both deltas.
+    *   **Current Output:** `{"delta": 0.5, "gamma": ...}`
+    *   **New Output:** `{"delta_eth": 0.6, "delta_btc": -0.4, "gamma": ...}`
+
+### Step 2: Modify the Configuration Sheet
+
+The Google Sheet needs to be updated to handle instructions for two assets.
+
+1.  **Add New Columns:** In the `Configuration` tab, you would need to specify two hedge assets and their respective parameters. The columns might look like this:
+    *   `asset_pair` (e.g., ETH/BTC)
+    *   ... (liquidity, price ranges) ...
+    *   `hedge_asset_1` (e.g., ETH)
+    *   `max_leverage_1`
+    *   `deadband_1`
+    *   `hedge_asset_2` (e.g., BTC)
+    *   `max_leverage_2`
+    *   `deadband_2`
+
+### Step 3: Overhaul the n8n Workflow
+
+This is the most significant change. The workflow must be redesigned to handle two parallel hedging legs.
+
+1.  **Fetch Two Positions:** You would need to add logic to fetch your current hedge position size for *both* assets from Hyperliquid.
+2.  **Split the Logic:** After the `state_calculator` node runs, the workflow would need to split into two parallel branches.
+3.  **Branch A (Hedge ETH):**
+    *   A **Function** node calculates the required ETH trade size (`trade_size_eth = -delta_eth - current_eth_hedge`).
+    *   An **IF** node checks if `trade_size_eth` is outside its deadband.
+    *   An **Execute Command** node calls `trade_executor.py` with the ETH asset, size, and leverage.
+4.  **Branch B (Hedge BTC):**
+    *   A **Function** node calculates the required BTC trade size (`trade_size_btc = -delta_btc - current_btc_hedge`).
+    *   An **IF** node checks if `trade_size_btc` is outside its deadband.
+    *   An **Execute Command** node calls `trade_executor.py` with the BTC asset, size, and leverage.
+5.  **Consolidate Logging:** The two branches would need to merge back together before the final "Persistent Log" step to ensure all actions are recorded correctly.
+
+### Step 4: The `trade_executor.py` Script
+
+Good news! The existing `trade_executor.py` script is already reusable. Since it accepts the asset, size, and other parameters as arguments, it can be called independently by each branch of the n8n workflow without needing any changes.
+
+---
+
+**Conclusion:**
+
+This upgrade would transform the bot into a far more powerful, two-dimensional risk management tool. It requires a solid understanding of the underlying mathematics and a careful redesign of the n8n orchestration workflow.
