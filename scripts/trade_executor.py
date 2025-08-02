@@ -25,7 +25,7 @@ def execute_trade(asset, is_buy, size, max_leverage, cloid):
     info = Info(constants.TESTNET_API_URL, skip_ws=True)
     try:
         # The info.meta() function returns a JSON string, so we must parse it into a dictionary
-        meta_dictionary = json.loads(info.meta())
+        meta_dictionary = info.meta()
     except json.JSONDecodeError:
         print(json.dumps({"status": "error", "message": "ERROR: Failed to parse metadata from Hyperliquid API."}), file=sys.stderr)
         sys.exit(1)
@@ -81,3 +81,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     execute_trade(args.asset, args.is_buy, args.size, args.max_leverage, args.cloid)
+
