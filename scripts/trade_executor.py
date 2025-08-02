@@ -22,7 +22,7 @@ def execute_trade(asset, is_buy, size, max_leverage, cloid):
     # 2. Initialize API clients
     # vvv THIS IS THE LINE TO CHANGE vvv
     info = Info(constants.TESTNET_API_URL, skip_ws=True)
-    exchange = Exchange(user_address, api_secret, constants.TESTNET_API_URL)
+    exchange = Exchange(user_address, constants.TESTNET_API_URL, api_secret)
 
     # 3. Fetch live account state for pre-trade checks
     user_state = info.user_state(user_address)
