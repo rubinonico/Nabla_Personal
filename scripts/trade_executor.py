@@ -19,16 +19,31 @@ def execute_trade(asset, is_buy, size, max_leverage, cloid):
         print(json.dumps({"status": "error", "message": "ERROR: API secret or address not set"}), file=sys.stderr)
         sys.exit(1)
 
-    # 2. Initialize API clients
-    # vvv THIS IS THE LINE TO CHANGE vvv
+    # --- START: MODIFIED INITIALIZATION BLOCK ---
+
+    # 2. Manually initialize Info, then fetch and parse metadata to bypass the library bug
     info = Info(constants.TESTNET_API_URL, skip_ws=True)
+    try:
+        # The info.meta() function returns a JSON string, so we must parse it into a dictionary
+        meta_dictionary = json.loads(info.meta())
+    except json.JSONDecodeError:
+        print(json.dumps({"status": "error", "message": "ERROR: Failed to parse metadata from Hyperliquid API."}), file=sys.stderr)
+        sys.exit(1)
+
+    # 3. Initialize the Exchange object
     exchange = Exchange(user_address, constants.TESTNET_API_URL, api_secret)
 
-    # 3. Fetch live account state for pre-trade checks
+    # 4. Manually set the correctly parsed metadata on the exchange's info object.
+    # This is the key step that bypasses the internal bug in the library.
+    exchange.info.set_perp_meta(meta_dictionary, 0)
+
+    # --- END: MODIFIED INITIALIZATION BLOCK ---
+
+    # 5. Fetch live account state for pre-trade checks
     user_state = info.user_state(user_address)
     available_margin = float(user_state["withdrawable"])
 
-    # 4. Pre-trade Safety Checks
+    # 6. Pre-trade Safety Checks
     asset_contexts = info.all_mids()
     oracle_price = float(asset_contexts[asset])
     trade_notional = size * oracle_price
@@ -39,7 +54,7 @@ def execute_trade(asset, is_buy, size, max_leverage, cloid):
         print(json.dumps({"status": "error", "message": msg}), file=sys.stderr)
         sys.exit(1)
 
-    # 5. Execute Idempotent Trade
+    # 7. Execute Idempotent Trade
     order_result = exchange.order(
         asset,
         is_buy,
@@ -52,7 +67,7 @@ def execute_trade(asset, is_buy, size, max_leverage, cloid):
     if order_result["status"] == "ok":
         print(json.dumps(order_result))
     else:
-        print(json.dumps(order_result), file=sys.stderr)
+        print(json.dumps({"status": "error", "data": order_result}), file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":
