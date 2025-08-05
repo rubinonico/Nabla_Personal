@@ -1,3 +1,4 @@
+#Build v4
 # Use the official N8N image as the base
 FROM docker.n8n.io/n8nio/n8n:latest
 
@@ -19,3 +20,4 @@ COPY scripts/ /scripts/
 # Switch back to the non-privileged 'node' user for security
 
 USER node
+
