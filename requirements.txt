@@ -1,1 +1,1 @@
-hyperliquid-python-sdk
+hyperliquid==0.4.66
