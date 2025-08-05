@@ -22,7 +22,8 @@ def execute_trade(asset, is_buy, size, max_leverage, cloid):
     # 2. Initialize Info object and get the metadata dictionary
     info = Info(constants.TESTNET_API_URL, skip_ws=True)
     meta_dictionary = info.meta()
-
+    print(f"DEBUG: meta_dictionary = {json.dumps(meta_dictionary, indent=2)}", file=sys.stderr)
+    
     # 3. Initialize the Exchange object
     exchange = Exchange(user_address, constants.TESTNET_API_URL, api_secret)
 
@@ -71,3 +72,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     execute_trade(args.asset, args.is_buy, args.size, args.max_leverage, args.cloid)
+
