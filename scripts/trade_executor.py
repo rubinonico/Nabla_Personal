@@ -19,25 +19,16 @@ def execute_trade(asset, is_buy, size, max_leverage, cloid):
         print(json.dumps({"status": "error", "message": "ERROR: API secret or address not set"}), file=sys.stderr)
         sys.exit(1)
 
-    # --- START: MODIFIED INITIALIZATION BLOCK ---
-
-    # 2. Manually initialize Info, then fetch and parse metadata to bypass the library bug
+    # 2. Initialize Info object and get the metadata dictionary
+    # The updated library returns a dictionary directly.
     info = Info(constants.TESTNET_API_URL, skip_ws=True)
-    try:
-        # The info.meta() function returns a JSON string, so we must parse it into a dictionary
-        meta_dictionary = info.meta()
-    except json.JSONDecodeError:
-        print(json.dumps({"status": "error", "message": "ERROR: Failed to parse metadata from Hyperliquid API."}), file=sys.stderr)
-        sys.exit(1)
+    meta_dictionary = info.meta()
 
     # 3. Initialize the Exchange object
     exchange = Exchange(user_address, constants.TESTNET_API_URL, api_secret)
 
-    # 4. Manually set the correctly parsed metadata on the exchange's info object.
-    # This is the key step that bypasses the internal bug in the library.
+    # 4. Manually set the metadata to be absolutely sure it's correct before proceeding
     exchange.info.set_perp_meta(meta_dictionary, 0)
-
-    # --- END: MODIFIED INITIALIZATION BLOCK ---
 
     # 5. Fetch live account state for pre-trade checks
     user_state = info.user_state(user_address)
@@ -81,4 +72,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     execute_trade(args.asset, args.is_buy, args.size, args.max_leverage, args.cloid)
-
