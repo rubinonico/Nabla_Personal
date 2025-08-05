@@ -11,13 +11,12 @@ def execute_trade(asset, is_buy, size, max_leverage, cloid):
     """
     Connects to Hyperliquid, performs pre-trade checks, and executes a trade.
     """
-    # --- INSECURE: Hardcoded credentials for testing ---
-    # vvv PASTE YOUR TESTNET ADDRESS AND SECRET HERE vvv
-    user_address = "0xe508ac5BB5E63969db0da4710a08D08cabEef6dA"
-    api_secret = "0x5a3eafa013b2d2609fa95e7a04c51f8f52e3979b943e0a079a11d3149bd4391a"
+    # 1. Securely load API credentials from environment variables
+    api_secret = os.environ.get("HYPERLIQUID_API_SECRET")
+    user_address = os.environ.get("HYPERLIQUID_ADDRESS")
 
-    if user_address == "YOUR_WALLET_ADDRESS_HERE" or api_secret == "YOUR_API_SECRET_HERE":
-        print(json.dumps({"status": "error", "message": "ERROR: Hardcoded credentials not set in the script."}), file=sys.stderr)
+    if not api_secret or not user_address:
+        print(json.dumps({"status": "error", "message": "ERROR: API secret or address not set"}), file=sys.stderr)
         sys.exit(1)
 
     # 2. Initialize Info object and get the metadata dictionary
@@ -27,7 +26,7 @@ def execute_trade(asset, is_buy, size, max_leverage, cloid):
     # 3. Initialize the Exchange object
     exchange = Exchange(user_address, constants.TESTNET_API_URL, api_secret)
 
-    # 4. Manually set the metadata
+    # 4. Manually set the metadata to prevent errors
     exchange.info.set_perp_meta(meta_dictionary, 0)
 
     # 5. Fetch live account state for pre-trade checks
@@ -50,7 +49,7 @@ def execute_trade(asset, is_buy, size, max_leverage, cloid):
         asset,
         is_buy,
         size,
-        None,
+        None, # Price is None for market order
         {"type": "market"},
         cloid=cloid
     )
@@ -63,11 +62,12 @@ def execute_trade(asset, is_buy, size, max_leverage, cloid):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Execute a hedge trade on Hyperliquid.")
-    # ... (The rest of the script is the same) ...
     parser.add_argument("--asset", required=True, type=str, help="Asset to trade, e.g., ETH.")
     parser.add_argument("--is_buy", required=True, type=lambda x: (str(x).lower() == 'true'), help="True for buy, False for sell.")
     parser.add_argument("--size", required=True, type=float, help="Size of the trade in the asset's unit.")
     parser.add_argument("--max_leverage", required=True, type=float, help="Maximum leverage allowed for the trade.")
     parser.add_argument("--cloid", required=True, type=str, help="Client Order ID for idempotency.")
+
     args = parser.parse_args()
+
     execute_trade(args.asset, args.is_buy, args.size, args.max_leverage, args.cloid)
