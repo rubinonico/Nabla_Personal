@@ -1,4 +1,4 @@
-# Use the official n8n image as the base
+# Use the official N8N image as the base
 FROM docker.n8n.io/n8nio/n8n:latest
 
 # Switch to the root user to install system packages
@@ -17,4 +17,5 @@ RUN pip install --break-system-packages -r requirements.txt
 COPY scripts/ /scripts/
 
 # Switch back to the non-privileged 'node' user for security
+
 USER node
